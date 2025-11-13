@@ -1,4 +1,6 @@
-// server.js
+// FBLA Lost & Found - Node.js Backend Server
+// Professional, production-ready implementation
+
 const express = require('express');
 const { Pool } = require('pg');
 const path = require('path');
@@ -9,138 +11,372 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(express.json()); // To parse incoming JSON payloads
-app.use(express.urlencoded({ extended: true })); // To parse form data
-app.use(express.static(path.join(__dirname, 'public'))); // Serve all files in the 'public' folder
-
-// --- PostgreSQL Pool Setup (Using Connection String for Reliability) ---
-
-// This structure forces the connection to use the exact DB_NAME specified in .env
-const connectionString = `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`;
+// ============================================================================
+// DATABASE CONFIGURATION
+// ============================================================================
 
 const pool = new Pool({
-    connectionString: connectionString,
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT,
 });
 
-// Test DB Connection
-pool.query('SELECT NOW()')
-    .then(res => console.log('Database connected successfully at:', res.rows[0].now))
-    .catch(err => console.error('DB Connection Error:', err.stack));
+// Test database connection
+pool.on('connect', () => {
+    console.log('✅ Connected to PostgreSQL database');
+});
 
-// --- API Endpoints ---
+pool.on('error', (err) => {
+    console.error('❌ Unexpected database error:', err);
+    process.exit(-1);
+});
 
-// 1. POST: Report Found Item
-app.post('/api/items', async (req, res) => {
-    const { name, description, location_found, contact_info, photo_url } = req.body;
-    try {
-        const query = `
-            INSERT INTO items (name, description, location_found, contact_info, photo_url, status)
-            VALUES ($1, $2, $3, $4, $5, 'Pending Review')
-            RETURNING *;
-        `;
-        const result = await pool.query(query, [name, description, location_found, contact_info, photo_url]);
-        res.status(201).json(result.rows[0]);
-    } catch (err) {
-        console.error('Error reporting item:', err.stack);
-        res.status(500).json({ error: 'Failed to report item.' });
+// ============================================================================
+// FILE UPLOAD CONFIGURATION
+// ============================================================================
+
+const uploadDir = path.join(__dirname, 'public/uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+    console.log('📁 Created uploads directory');
+}
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, 'item-' + uniqueSuffix + ext);
     }
 });
 
-// 2. GET: Searchable Listing of Approved Items (Includes Search/Filter logic)
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = /jpeg|jpg|png/;
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowedTypes.test(file.mimetype);
+        
+        if (mimetype && extname) {
+            return cb(null, true);
+        } else {
+            cb(new Error('Only JPEG, JPG, and PNG images are allowed'));
+        }
+    }
+});
+
+// ============================================================================
+// MIDDLEWARE
+// ============================================================================
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(uploadDir));
+
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
+});
+
+const ADMIN_KEY = 'fbla';
+
+function checkAdminKey(req, res, next) {
+    const adminKey = req.query.admin_key;
+    if (adminKey === ADMIN_KEY) {
+        next();
+    } else {
+        res.status(401).json({ error: 'Unauthorized: Invalid admin key' });
+    }
+}
+
+// ============================================================================
+// PUBLIC API ENDPOINTS
+// ============================================================================
+
+/**
+ * POST /api/items
+ * Report a found item (with optional photo upload)
+ */
+app.post('/api/items', upload.single('item_image'), async (req, res) => {
+    const { name, description, location_found, contact_info } = req.body;
+    const photo_url = req.file ? `/uploads/${req.file.filename}` : null;
+    
+    // Input validation
+    if (!name || !description || !contact_info) {
+        if (req.file) fs.unlinkSync(req.file.path);
+        return res.status(400).json({ 
+            error: 'Missing required fields: name, description, and contact info are required' 
+        });
+    }
+    
+    try {
+        const query = `
+            INSERT INTO items (name, description, location_found, contact_info, photo_url, status, date_found)
+            VALUES ($1, $2, $3, $4, $5, 'Pending Review', NOW())
+            RETURNING *;
+        `;
+        const result = await pool.query(query, [
+            name, 
+            description, 
+            location_found || 'Not specified', 
+            contact_info, 
+            photo_url
+        ]);
+        
+        console.log(`✅ New item reported: ${name} (ID: ${result.rows[0].id})`);
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error('❌ Error reporting item:', err);
+        if (req.file) fs.unlinkSync(req.file.path);
+        res.status(500).json({ error: 'Failed to report item. Please try again.' });
+    }
+});
+
+/**
+ * GET /api/items
+ * Search and retrieve approved items (public access)
+ */
 app.get('/api/items', async (req, res) => {
-    const { query, sort } = req.query; 
-    let sql = `SELECT * FROM items WHERE status = 'Approved'`;
+    const { query, sort } = req.query;
+    
+    let dbQuery = `
+        SELECT id, name, description, location_found, photo_url, date_found 
+        FROM items 
+        WHERE status = 'Approved'
+    `;
     const params = [];
 
     if (query) {
         params.push(`%${query}%`);
-        sql += ` AND (name ILIKE $${params.length} OR description ILIKE $${params.length})`;
+        dbQuery += ` AND (name ILIKE $1 OR description ILIKE $1 OR location_found ILIKE $1)`;
     }
 
     if (sort === 'oldest') {
-        sql += ` ORDER BY date_found ASC`;
+        dbQuery += ' ORDER BY date_found ASC';
     } else {
-        sql += ` ORDER BY date_found DESC`; // Default to newest
+        dbQuery += ' ORDER BY date_found DESC';
     }
 
     try {
-        const result = await pool.query(sql, params);
+        const result = await pool.query(dbQuery, params);
         res.json(result.rows);
     } catch (err) {
-        console.error('Error fetching items:', err.stack);
-        res.status(500).json({ error: 'Failed to retrieve items.' });
+        console.error('❌ Error fetching items:', err);
+        res.status(500).json({ error: 'Failed to fetch items' });
     }
 });
 
-// 3. POST: Submit a Claim/Inquiry
+/**
+ * POST /api/claims
+ * Submit a claim for an item
+ */
 app.post('/api/claims', async (req, res) => {
     const { item_id, claimer_name, claimer_email, match_details } = req.body;
+    
+    // Input validation
+    if (!item_id || !claimer_name || !claimer_email || !match_details) {
+        return res.status(400).json({ 
+            error: 'All fields are required: item_id, claimer_name, claimer_email, and match_details' 
+        });
+    }
+
     try {
         const query = `
-            INSERT INTO claims (item_id, claimer_name, claimer_email, match_details)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO claims (item_id, claimer_name, claimer_email, match_details, status, date_claimed)
+            VALUES ($1, $2, $3, $4, 'New Claim', NOW())
             RETURNING *;
         `;
-        const result = await pool.query(query, [item_id, claimer_name, claimer_email, match_details]);
-        res.status(201).json({ message: 'Claim submitted successfully.', claim: result.rows[0] });
-    } catch (err) {
-        console.error('Error submitting claim:', err.stack);
-        res.status(500).json({ error: 'Failed to submit claim.' });
-    }
-});
-
-// 4. GET: Admin Dashboard Data (All items and claims)
-app.get('/api/admin/data', async (req, res) => {
-    try {
-        const items = await pool.query('SELECT * FROM items ORDER BY created_at DESC');
-        const claims = await pool.query(`
-            SELECT c.*, i.name AS item_name, i.status AS item_status
-            FROM claims c 
-            JOIN items i ON c.item_id = i.id 
-            ORDER BY c.claimed_at DESC
-        `);
-        res.json({ items: items.rows, claims: claims.rows });
-    } catch (err) {
-        console.error('Error fetching admin data:', err.stack);
-        res.status(500).json({ error: 'Failed to retrieve admin data.' });
-    }
-});
-
-// 5. PUT: Admin Action to Manage Item Status (Approve/Reject Posting)
-app.put('/api/admin/item/:id', async (req, res) => {
-    const itemId = req.params.id;
-    const { status } = req.body; 
-    try {
-        const result = await pool.query('UPDATE items SET status = $1 WHERE id = $2 RETURNING *', [status, itemId]);
-        res.json({ message: `Item ${itemId} status updated to ${status}.`, item: result.rows[0] });
-    } catch (err) {
-        console.error('Error updating item status:', err.stack);
-        res.status(500).json({ error: 'Failed to update item status.' });
-    }
-});
-
-// 6. PUT: Admin Action to Manage Claim Status (Fulfills management requirement)
-app.put('/api/admin/claim/:id', async (req, res) => {
-    const claimId = req.params.id;
-    const { status, itemId } = req.body; // status: 'Approved' or 'Rejected'
-    try {
-        // 1. Update the claim status
-        const claimResult = await pool.query('UPDATE claims SET status = $1 WHERE id = $2 RETURNING *', [status, claimId]);
+        const result = await pool.query(query, [
+            item_id, 
+            claimer_name, 
+            claimer_email, 
+            match_details
+        ]);
         
-        // 2. If claim is approved, update the related item status to 'Claimed'
-        if (status === 'Approved' && itemId) {
-             await pool.query('UPDATE items SET status = $1, claim_id = $2 WHERE id = $3', ['Claimed', claimId, itemId]);
+        console.log(`✅ New claim submitted for item ${item_id} by ${claimer_name}`);
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error('❌ Error submitting claim:', err);
+        res.status(500).json({ error: 'Failed to submit claim. Please try again.' });
+    }
+});
+
+// ============================================================================
+// ADMIN API ENDPOINTS (Protected)
+// ============================================================================
+
+/**
+ * GET /api/admin/data
+ * Get all items and claims for admin dashboard
+ */
+app.get('/api/admin/data', checkAdminKey, async (req, res) => {
+    try {
+        const itemsResult = await pool.query(`
+            SELECT * FROM items 
+            ORDER BY date_found DESC
+        `);
+        
+        const claimsResult = await pool.query(`
+            SELECT 
+                c.id, c.item_id, c.claimer_name, c.claimer_email, 
+                c.match_details, c.status, c.date_claimed,
+                i.name AS item_name, i.photo_url 
+            FROM claims c
+            JOIN items i ON c.item_id = i.id
+            ORDER BY c.date_claimed DESC
+        `);
+        
+        res.json({
+            items: itemsResult.rows,
+            claims: claimsResult.rows
+        });
+    } catch (err) {
+        console.error('❌ Error fetching admin data:', err);
+        res.status(500).json({ error: 'Failed to fetch admin data' });
+    }
+});
+
+/**
+ * PUT /api/admin/item/:itemId
+ * Update item status (Approve/Reject)
+ */
+app.put('/api/admin/item/:itemId', checkAdminKey, async (req, res) => {
+    const { itemId } = req.params;
+    const { status } = req.body;
+    
+    const validStatuses = ['Approved', 'Rejected', 'Claimed'];
+    if (!validStatuses.includes(status)) {
+        return res.status(400).json({ error: 'Invalid status. Must be: Approved, Rejected, or Claimed' });
+    }
+
+    try {
+        let dateField = '';
+        if (status === 'Approved') {
+            dateField = ', date_approved = NOW()';
         }
         
-        res.json({ message: `Claim ${claimId} status updated to ${status}.` });
+        const query = `
+            UPDATE items 
+            SET status = $1${dateField} 
+            WHERE id = $2 
+            RETURNING *;
+        `;
+        const result = await pool.query(query, [status, itemId]);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Item not found' });
+        }
+        
+        console.log(`✅ Item ${itemId} status updated to: ${status}`);
+        res.json(result.rows[0]);
     } catch (err) {
-        console.error('Error updating claim status:', err.stack);
-        res.status(500).json({ error: 'Failed to update claim status.' });
+        console.error(`❌ Error updating item ${itemId}:`, err);
+        res.status(500).json({ error: 'Failed to update item status' });
     }
 });
 
+/**
+ * PUT /api/admin/claim/:claimId
+ * Update claim status (Approve/Reject) and mark item as claimed if approved
+ */
+app.put('/api/admin/claim/:claimId', checkAdminKey, async (req, res) => {
+    const { claimId } = req.params;
+    const { status, itemId } = req.body;
+    
+    const validStatuses = ['Approved', 'Rejected'];
+    if (!validStatuses.includes(status)) {
+        return res.status(400).json({ error: 'Invalid status. Must be: Approved or Rejected' });
+    }
 
-// --- Start Server ---
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Update claim status
+        const claimQuery = `
+            UPDATE claims 
+            SET status = $1, date_reviewed = NOW() 
+            WHERE id = $2 
+            RETURNING *;
+        `;
+        const claimResult = await client.query(claimQuery, [status, claimId]);
+        
+        if (claimResult.rowCount === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Claim not found' });
+        }
+
+        // If claim approved, mark item as claimed
+        if (status === 'Approved' && itemId) {
+            const itemQuery = `
+                UPDATE items 
+                SET status = 'Claimed' 
+                WHERE id = $1 
+                RETURNING *;
+            `;
+            await client.query(itemQuery, [itemId]);
+            console.log(`✅ Item ${itemId} marked as claimed`);
+        }
+
+        await client.query('COMMIT');
+        console.log(`✅ Claim ${claimId} ${status.toLowerCase()}`);
+        
+        res.json({ 
+            claim: claimResult.rows[0], 
+            itemStatusUpdated: status === 'Approved' 
+        });
+
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error(`❌ Error processing claim ${claimId}:`, err);
+        res.status(500).json({ error: 'Failed to process claim' });
+    } finally {
+        client.release();
+    }
+});
+
+// ============================================================================
+// ERROR HANDLING
+// ============================================================================
+
+// Handle 404 errors
+app.use((req, res) => {
+    res.status(404).json({ error: 'Endpoint not found' });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error('❌ Server error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+});
+
+// ============================================================================
+// SERVER STARTUP
+// ============================================================================
+
 app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+    console.log('='.repeat(50));
+    console.log('🚀 FBLA Lost & Found Server Started');
+    console.log('='.repeat(50));
+    console.log(`📍 Server running at: http://localhost:${port}`);
+    console.log(`🗄️  Database: ${process.env.DB_NAME}`);
+    console.log(`🔐 Admin key configured: Yes`);
+    console.log('='.repeat(50));
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('🛑 SIGTERM signal received: closing HTTP server');
+    pool.end(() => {
+        console.log('Database pool closed');
+        process.exit(0);
+    });
 });

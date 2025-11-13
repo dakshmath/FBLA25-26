@@ -3,35 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search Found Items</title>
+    <title>Search Lost Items - Lost & Found Hub</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <header>
-        <div class="logo">Lost & Found Hub</div>
-        <nav>
-            <a href="index.html">Home</a>
-            <a href="search.html">Search Lost Items</a>
-            <a href="report.html">Report Found Item</a>
-            <a href="admin.html">Admin</a>
-        </nav>
+        <div class="container">
+            <div class="logo">Lost & Found Hub</div>
+            <nav>
+                <a href="index.html">Home</a>
+                <a href="search.html">Search Items</a>
+                <a href="report.html">Report Found</a>
+                <a href="admin.html">Admin</a>
+            </nav>
+        </div>
     </header>
+    
     <main>
         <h1>Search for Your Lost Item</h1>
-        <p style="margin-bottom: 2rem;">Only items approved by an administrator are shown here. If you find a match, click "Claim This Item."</p>
+        <p style="margin-bottom: 2rem; color: var(--text-muted);">
+            Browse items that have been found and approved by administrators. 
+            If you find your item, click "Claim This Item" to start the verification process.
+        </p>
+        
         <section class="search-controls">
-            <input type="text" id="search-input" placeholder="Search by name or description (e.g., 'blue backpack', 'Nike shoe')">
-            <label for="sort-select">Sort By:</label>
-            <select id="sort-select" class="button secondary">
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-            </select>
+            <div>
+                <label for="search-input">Search by name, description, or location:</label>
+                <input type="text" 
+                       id="search-input" 
+                       placeholder="e.g., 'blue backpack', 'calculator', 'phone'">
+            </div>
+            <div>
+                <label for="sort-select">Sort by:</label>
+                <select id="sort-select">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                </select>
+            </div>
         </section>
 
         <section id="item-list" class="item-grid">
-            </section>
+            <p class="loading-indicator">Loading items...</p>
+        </section>
     </main>
-    <footer>&copy; 25-26' FBLA Lost & Found Project</footer>
+    
+    <footer>
+        &copy; 2025-2026 FBLA Lost & Found Project | Mount Hebron High School
+    </footer>
+    
     <script src="js/client.js"></script>
 </body>
 </html>

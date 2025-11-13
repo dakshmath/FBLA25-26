@@ -3,39 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Claim Item</title>
+    <title>Claim Item - Lost & Found Hub</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <header>
-        <div class="logo">Lost & Found Hub</div>
-        <nav>
-            <a href="index.html">Home</a>
-            <a href="search.html">Search Lost Items</a>
-            <a href="report.html">Report Found Item</a>
-            <a href="admin.html">Admin</a>
-        </nav>
+        <div class="container">
+            <div class="logo">Lost & Found Hub</div>
+            <nav>
+                <a href="index.html">Home</a>
+                <a href="search.html">Search Items</a>
+                <a href="report.html">Report Found</a>
+                <a href="admin.html">Admin</a>
+            </nav>
+        </div>
     </header>
+    
     <main>
-        <h1 id="claim-title">Claiming Item #<span id="item-id-display">N/A</span></h1>
-        <p style="margin-bottom: 2rem;">**Ownership Verification Required:** To ensure security, administrators will review your claim and verify your proof before releasing the item.</p>
+        <h1 id="claim-title">Claim Item #<span id="item-id-display">N/A</span></h1>
+        <p style="margin-bottom: 2rem; padding: 1rem; background-color: #fff3cd; border-left: 4px solid var(--warning); border-radius: 6px;">
+            <strong>⚠️ Ownership Verification Required:</strong> 
+            To protect against fraud, administrators will carefully review your claim and verify your proof of ownership before releasing the item.
+        </p>
+        
         <form id="claim-form">
             <input type="hidden" id="item-id" name="item_id">
             
-            <label for="claimer-name">Your Full Name:</label>
-            <input type="text" id="claimer-name" name="claimer_name" required>
+            <label for="claimer-name">Your Full Name: <span style="color: var(--danger);">*</span></label>
+            <input type="text" 
+                   id="claimer-name" 
+                   name="claimer_name" 
+                   placeholder="First and Last Name" 
+                   required>
 
-            <label for="claimer-email">Your Best Contact Email (Will receive admin response):</label>
-            <input type="email" id="claimer-email" name="claimer_email" required>
+            <label for="claimer-email">Your Contact Email: <span style="color: var(--danger);">*</span></label>
+            <input type="email" 
+                   id="claimer-email" 
+                   name="claimer_email" 
+                   placeholder="you@example.com" 
+                   required>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.25rem;">
+                Administrators will contact you at this email regarding your claim.
+            </p>
 
-            <label for="match-details">Proof of Ownership (REQUIRED):</label>
-            <textarea id="match-details" name="match_details" rows="6" placeholder="Describe the contents, a unique marking, the exact time you lost it, or a password/PIN. Be detailed!"></textarea>
+            <label for="match-details">Proof of Ownership: <span style="color: var(--danger);">*</span></label>
+            <textarea id="match-details" 
+                      name="match_details" 
+                      rows="6" 
+                      placeholder="Provide detailed proof that this item is yours. Include: unique identifying features, contents (for bags/wallets), serial numbers, passwords/PINs, exact time and location where you lost it, or any other information only the true owner would know." 
+                      required></textarea>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.25rem;">
+                <strong>Be specific!</strong> The more detailed your proof, the faster we can verify and return your item.
+            </p>
             
-            <button type="submit" class="button primary">Submit Claim for Review</button>
+            <button type="submit" class="button primary" style="width: 100%; margin-top: 1.5rem;">
+                Submit Claim for Review
+            </button>
         </form>
+        
         <p id="claim-message" style="display: none;"></p>
     </main>
-    <footer>&copy; 25-26' FBLA Lost & Found Project</footer>
+    
+    <footer>
+        &copy; 2025-2026 FBLA Lost & Found Project | Mount Hebron High School
+    </footer>
+    
     <script src="js/client.js"></script>
 </body>
 </html>

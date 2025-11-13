@@ -3,56 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard (Secured)</title>
+    <title>Admin Dashboard - Lost & Found Hub</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <header>
-        <div class="logo">Admin Dashboard</div>
-        <nav><a href="index.html">Home</a></nav>
-    </header>
-    <main class="admin-dashboard" id="admin-main" style="display:none;">
-        <div class="admin-header">
-            <h1>Management System</h1>
+        <div class="container">
+            <div class="logo">Admin Dashboard</div>
+            <nav>
+                <a href="index.html">Home</a>
+                <button id="admin-logout" class="btn btn-logout" style="display:none;">Logout</button>
+            </nav>
         </div>
+    </header>
+    
+    <main>
+        <!-- Login Section (Shows first by default) -->
+        <section id="admin-login" class="login-container">
+            <form id="admin-login-form">
+                <h1>Administrator Access</h1>
+                <p>Please enter your admin passcode to access the management dashboard.</p>
+                
+                <label for="admin-password">Admin Passcode:</label>
+                <input type="password" id="admin-password" placeholder="Enter admin passcode" required>
+                
+                <button type="submit" class="button primary" style="width: 100%; margin-top: 1.5rem;">
+                    Log In
+                </button>
+                
+                <p id="login-message" class="status-message message-error" style="display:none; margin-top: 1rem;"></p>
+            </form>
+        </section>
         
-        <section class="stats-grid">
-            <div class="stat-card">
-                <h3>Items Pending Review</h3>
-                <p class="count danger" id="pending-count">0</p>
+        <!-- Admin Dashboard (Hidden until successful login) -->
+        <div class="admin-dashboard" id="admin-main" style="display:none;">
+            <div class="admin-header">
+                <h1>Management Dashboard</h1>
             </div>
-            <div class="stat-card">
-                <h3>New Claim Requests</h3>
-                <p class="count warning" id="claim-count">0</p>
-            </div>
+            
+            <!-- Statistics Cards -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <h3>Items Pending Review</h3>
+                    <p class="count" id="pending-count">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>New Claim Requests</h3>
+                    <p class="count" id="claim-count">0</p>
+                </div>
             </section>
 
-        <section class="admin-list">
-            <h2>Item Postings Pending Review</h2>
-            <div id="pending-items-list">
+            <!-- Pending Items Section -->
+            <section class="admin-list">
+                <h2>Item Postings Pending Review</h2>
+                <div id="pending-items-list">
+                    <p class="loading-indicator">Loading...</p>
                 </div>
-        </section>
-        
-        <section class="admin-list">
-            <h2>New Claim Requests (Awaiting Proof Verification)</h2>
-            <div id="new-claims-list">
+            </section>
+            
+            <!-- New Claims Section -->
+            <section class="admin-list">
+                <h2>New Claim Requests</h2>
+                <div id="new-claims-list">
+                    <p class="loading-indicator">Loading...</p>
                 </div>
-        </section>
+            </section>
+        </div>
     </main>
     
+    <!-- Custom Dialog (for confirmations) -->
+    <div id="custom-dialog" class="dialog-backdrop">
+        <div class="dialog-content">
+            <h3 id="dialog-title"></h3>
+            <p id="dialog-message"></p>
+            <div class="dialog-actions">
+                <button id="dialog-ok" class="btn btn-approve">OK</button>
+                <button id="dialog-cancel" class="btn btn-reject" style="display:none;">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        &copy; 2025-2026 FBLA Lost & Found Project | Mount Hebron High School
+    </footer>
+    
     <script src="js/client.js"></script>
-    <script>
-        const password = prompt("Enter Admin Passcode to continue");
-        const requiredPasscode = "fbla";
-        
-        if (password === requiredPasscode) {
-            document.getElementById('admin-main').style.display = 'block';
-            // The loadAdminData function is called by the DOMContentLoaded listener in client.js
-        } else {
-            alert("Incorrect Passcode. Access Denied.");
-            window.location.href = 'index.html'; 
-        }
-    </script>
-    <footer>&copy; 25-26' FBLA Lost & Found Project</footer>
 </body>
 </html>
