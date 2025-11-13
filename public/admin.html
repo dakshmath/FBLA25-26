@@ -18,7 +18,6 @@
     </header>
     
     <main>
-        <!-- Login Section (Shows first by default) -->
         <section id="admin-login" class="login-container">
             <form id="admin-login-form">
                 <h1>Administrator Access</h1>
@@ -35,13 +34,11 @@
             </form>
         </section>
         
-        <!-- Admin Dashboard (Hidden until successful login) -->
         <div class="admin-dashboard" id="admin-main" style="display:none;">
             <div class="admin-header">
                 <h1>Management Dashboard</h1>
             </div>
             
-            <!-- Statistics Cards -->
             <section class="stats-grid">
                 <div class="stat-card">
                     <h3>Items Pending Review</h3>
@@ -53,7 +50,6 @@
                 </div>
             </section>
 
-            <!-- Pending Items Section -->
             <section class="admin-list">
                 <h2>Item Postings Pending Review</h2>
                 <div id="pending-items-list">
@@ -61,7 +57,6 @@
                 </div>
             </section>
             
-            <!-- New Claims Section -->
             <section class="admin-list">
                 <h2>New Claim Requests</h2>
                 <div id="new-claims-list">
@@ -71,7 +66,6 @@
         </div>
     </main>
     
-    <!-- Custom Dialog (for confirmations) -->
     <div id="custom-dialog" class="dialog-backdrop">
         <div class="dialog-content">
             <h3 id="dialog-title"></h3>

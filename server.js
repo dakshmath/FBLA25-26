@@ -1,6 +1,3 @@
-// FBLA Lost & Found - Node.js Backend Server
-// Professional, production-ready implementation
-
 const express = require('express');
 const { Pool } = require('pg');
 const path = require('path');
@@ -11,9 +8,7 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// ============================================================================
 // DATABASE CONFIGURATION
-// ============================================================================
 
 const pool = new Pool({
     user: process.env.DB_USER,
@@ -23,7 +18,6 @@ const pool = new Pool({
     port: process.env.DB_PORT,
 });
 
-// Test database connection
 pool.on('connect', () => {
     console.log('✅ Connected to PostgreSQL database');
 });
@@ -33,9 +27,7 @@ pool.on('error', (err) => {
     process.exit(-1);
 });
 
-// ============================================================================
 // FILE UPLOAD CONFIGURATION
-// ============================================================================
 
 const uploadDir = path.join(__dirname, 'public/uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -72,9 +64,7 @@ const upload = multer({
     }
 });
 
-// ============================================================================
 // MIDDLEWARE
-// ============================================================================
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -97,19 +87,15 @@ function checkAdminKey(req, res, next) {
     }
 }
 
-// ============================================================================
 // PUBLIC API ENDPOINTS
-// ============================================================================
 
 /**
- * POST /api/items
  * Report a found item (with optional photo upload)
  */
 app.post('/api/items', upload.single('item_image'), async (req, res) => {
     const { name, description, location_found, contact_info } = req.body;
     const photo_url = req.file ? `/uploads/${req.file.filename}` : null;
     
-    // Input validation
     if (!name || !description || !contact_info) {
         if (req.file) fs.unlinkSync(req.file.path);
         return res.status(400).json({ 
@@ -209,9 +195,7 @@ app.post('/api/claims', async (req, res) => {
     }
 });
 
-// ============================================================================
 // ADMIN API ENDPOINTS (Protected)
-// ============================================================================
 
 /**
  * GET /api/admin/data
@@ -300,7 +284,6 @@ app.put('/api/admin/claim/:claimId', checkAdminKey, async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // Update claim status
         const claimQuery = `
             UPDATE claims 
             SET status = $1, date_reviewed = NOW() 
@@ -314,7 +297,6 @@ app.put('/api/admin/claim/:claimId', checkAdminKey, async (req, res) => {
             return res.status(404).json({ error: 'Claim not found' });
         }
 
-        // If claim approved, mark item as claimed
         if (status === 'Approved' && itemId) {
             const itemQuery = `
                 UPDATE items 
@@ -343,24 +325,18 @@ app.put('/api/admin/claim/:claimId', checkAdminKey, async (req, res) => {
     }
 });
 
-// ============================================================================
 // ERROR HANDLING
-// ============================================================================
 
-// Handle 404 errors
 app.use((req, res) => {
     res.status(404).json({ error: 'Endpoint not found' });
 });
 
-// Global error handler
 app.use((err, req, res, next) => {
     console.error('❌ Server error:', err);
     res.status(500).json({ error: 'Internal server error' });
 });
 
-// ============================================================================
 // SERVER STARTUP
-// ============================================================================
 
 app.listen(port, () => {
     console.log('='.repeat(50));
@@ -372,7 +348,6 @@ app.listen(port, () => {
     console.log('='.repeat(50));
 });
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
     console.log('🛑 SIGTERM signal received: closing HTTP server');
     pool.end(() => {

@@ -14,9 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupDialogListeners();
 });
 
-// ============================================================================
 // CUSTOM DIALOG SYSTEM
-// ============================================================================
 
 const dialogEl = document.getElementById('custom-dialog');
 const dialogTitleEl = document.getElementById('dialog-title');
@@ -61,9 +59,7 @@ function showDialog(title, message, isConfirm = false, callback = null) {
     dialogEl.classList.add('open');
 }
 
-// ============================================================================
 // REPORT PAGE
-// ============================================================================
 
 function setupReportPage() {
     const form = document.getElementById('report-form');
@@ -109,9 +105,7 @@ async function handleReportSubmission(event) {
     }
 }
 
-// ============================================================================
 // SEARCH PAGE
-// ============================================================================
 
 function setupSearchPage() {
     loadItems();
@@ -195,9 +189,7 @@ async function loadItems() {
     }
 }
 
-// ============================================================================
 // CLAIM PAGE
-// ============================================================================
 
 function setupClaimPage() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -256,25 +248,20 @@ async function handleClaimSubmission(event) {
     }
 }
 
-// ============================================================================
 // ADMIN PAGE
-// ============================================================================
 
 const ADMIN_KEY = 'fbla';
 const STORAGE_KEY = 'lf_admin_key';
 
 function setupAdminPage() {
-    // ALWAYS show login first - don't check storage
     const loginSection = document.getElementById('admin-login');
     const mainSection = document.getElementById('admin-main');
     const logoutBtn = document.getElementById('admin-logout');
     
-    // Force show login, hide dashboard
     loginSection.style.display = 'block';
     mainSection.style.display = 'none';
     logoutBtn.style.display = 'none';
     
-    // Clear any old session
     sessionStorage.removeItem(STORAGE_KEY);
     
     document.getElementById('admin-login-form')?.addEventListener('submit', handleAdminLogin);
@@ -290,18 +277,14 @@ function handleAdminLogin(event) {
     messageEl.style.display = 'none';
     
     if (password === ADMIN_KEY) {
-        // Store session and show dashboard
         sessionStorage.setItem(STORAGE_KEY, ADMIN_KEY);
         
-        // Hide login, show dashboard
         document.getElementById('admin-login').style.display = 'none';
         document.getElementById('admin-main').style.display = 'block';
         document.getElementById('admin-logout').style.display = 'inline-block';
         
-        // Setup logout button
         document.getElementById('admin-logout').addEventListener('click', handleAdminLogout);
         
-        // Load admin data
         loadAdminData();
     } else {
         messageEl.textContent = '❌ Incorrect password. Please try again.';
@@ -456,9 +439,7 @@ function renderNewClaims(container, claims) {
     });
 }
 
-// ============================================================================
-// ADMIN ACTIONS (Global functions for onclick handlers)
-// ============================================================================
+// ADMIN ACTIONS
 
 window.handleItemApproval = function(itemId) {
     showDialog(
@@ -558,9 +539,7 @@ async function updateClaimStatus(claimId, itemId, status) {
     }
 }
 
-// ============================================================================
 // UTILITY FUNCTIONS
-// ============================================================================
 
 function escapeHtml(text) {
     const map = {
