@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Found Item</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">Lost & Found Hub</div>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="search.html">Search Lost Items</a>
+            <a href="report.html">Report Found Item</a>
+            <a href="admin.html">Admin</a>
+        </nav>
+    </header>
+    <main>
+        <h1>Report a Found Item</h1>
+        <p style="margin-bottom: 2rem;">Thank you for helping! Please provide as much detail as possible. This submission requires admin approval before going live.</p>
+        
+        <form id="report-form" enctype="multipart/form-data"> 
+            <label for="name">Item Name (e.g., Apple Watch, Red Jacket, Blue Binder):</label>
+            <input type="text" id="name" name="name" required>
+    
+            <label for="location_found">Location Found (Be specific! e.g., Cafeteria Booth 3, Room 205, Main Hallway):</label>
+            <input type="text" id="location_found" name="location_found" required>
+            
+            <label for="description">Detailed Description (Color, size, brand, unique features/marks, condition):</label>
+            <textarea id="description" name="description" rows="4" required></textarea>
+            
+            <label for="item_image">Upload Photo (JPG/PNG only):</label>
+            <input type="file" id="item_image" name="item_image" accept=".jpg, .jpeg, .png"> 
+            <label for="contact_info">Your Contact Email/ID (This remains confidential to admins):</label>
+            <input type="text" id="contact_info" name="contact_info" required>
+    
+            <button type="submit" class="button primary">Submit Item for Review</button>
+        </form>
+        <p id="report-message" style="display: none;"></p>
+    </main>
+    <footer>&copy; 25-26' FBLA Lost & Found Project</footer>
+    <script src="js/client.js"></script>
+</body>
+</html>
