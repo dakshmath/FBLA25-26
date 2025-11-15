@@ -1,4 +1,44 @@
+// THEME TOGGLE FUNCTIONALITY
+function initThemeToggle() {
+    // Get saved theme from localStorage or default to 'light'
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    
+    // Create and inject theme toggle button in header nav
+    const nav = document.querySelector('header nav');
+    if (nav) {
+        const toggleContainer = document.createElement('div');
+        toggleContainer.className = 'theme-toggle-container';
+        toggleContainer.innerHTML = `
+            <div class="theme-toggle" id="theme-toggle" role="button" aria-label="Toggle dark mode" tabindex="0">
+                <div class="theme-toggle-slider"></div>
+            </div>
+        `;
+        nav.appendChild(toggleContainer);
+        
+        const toggleBtn = document.getElementById('theme-toggle');
+        toggleBtn.addEventListener('click', toggleTheme);
+        toggleBtn.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleTheme();
+            }
+        });
+    }
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+}
+
+// Initialize theme toggle on page load
 document.addEventListener('DOMContentLoaded', () => {
+    initThemeToggle();
+    
     const path = window.location.pathname;
 
     if (path.includes('report.html')) {
